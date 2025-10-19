@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import "./App.css";
+import logo from "./assets/title-logo.avif";
 
 export interface QueueEntry {
   QueuePosition: number;
@@ -60,38 +61,48 @@ function App() {
   return (
     <div className="app-root">
       <header className="app-header">
-        <h1>GeForce Now — Thailand Queue</h1>
-        <p className="subtitle">
-          Auto-refresh every 1 minute • Mobile-friendly
-        </p>
+        <img src={logo} alt="GeForce Now Logo" />
+        <p className="subtitle">รีเฟรชทุก 1 นาที</p>
       </header>
 
       <main>
-        {error && <div className="error">Error: {error}</div>}
+        {error && <div className="error">เกิดข้อผิดพลาด: {error}</div>}
 
         <section className="server-list" role="list">
           {entries.length === 0 ? (
-            <div className="empty">No Thai servers found</div>
+            <div className="empty">ไม่พบเซิร์ฟเวอร์ในไทย</div>
           ) : (
-            entries.map(([id, entry]) => (
-              <div key={id} className="server-card" role="listitem">
-                <div className="server-id">{id}</div>
-                <div className="server-pos">
-                  Position: {entry.QueuePosition}
+            entries.map(([id, entry]) => {
+              // แปลง id เป็นชื่อแผน
+              const upId = id.toUpperCase();
+              const tier = upId.includes("ULT")
+                ? "Ultimate"
+                : upId.includes("PREF") || upId.includes("PERF")
+                ? "Performance"
+                : "Lite";
+              return (
+                <div key={id} className="server-card" role="listitem">
+                  <div className="server-id">{id}</div>
+                  <div className="server-tier">แผน: {tier}</div>
+                  <div className="server-pos">
+                    ลำดับคิว: {entry.QueuePosition}
+                  </div>
+                  <div className="server-updated">
+                    อัปเดต:{" "}
+                    {new Date(entry["Last Updated"] * 1000).toLocaleString(
+                      "th-TH"
+                    )}
+                  </div>
+                  <div className="server-region">ภูมิภาค: {entry.Region}</div>
                 </div>
-                <div className="server-updated">
-                  Updated:
-                  {new Date(entry["Last Updated"] * 1000).toLocaleString()}
-                </div>
-                <div className="server-region">Region: {entry.Region}</div>
-              </div>
-            ))
+              );
+            })
           )}
         </section>
       </main>
 
       <footer className="app-footer">
-        <small>Last checked every 1 minute</small>
+        <small>ตรวจสอบล่าสุดทุก 1 นาที</small>
       </footer>
     </div>
   );

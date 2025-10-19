@@ -41,6 +41,23 @@
   color: #888;
 }
 
+/* Header logo (title image) responsiveness */
+.app-header img {
+  display: block;
+  max-width: 100%;
+  height: auto;
+  margin: 0 auto 0.5rem;
+  border-radius: 8px;
+}
+
+/* If there are other .logo classes (from the starter), keep them but prefer explicit sizing */
+.logo {
+  max-width: 220px;
+  width: 40%;
+  height: auto;
+  padding: 0.5rem;
+}
+
 /* Responsive server list styles */
 .app-root {
   padding: 1rem;
@@ -71,6 +88,11 @@
 }
 .server-id {
   font-weight: 600;
+  margin-bottom: 0.25rem;
+}
+.server-tier {
+  font-weight: 700;
+  color: #0b8f00;
   margin-bottom: 0.25rem;
 }
 .server-pos {
