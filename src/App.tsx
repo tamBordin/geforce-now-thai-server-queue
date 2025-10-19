@@ -68,6 +68,11 @@ function App() {
   }, []);
 
   const entries = Object.entries(thaiServers);
+  const getPosClass = (pos: number) => {
+    if (pos === 0) return "pos-green";
+    if (pos > 0 && pos <= 20) return "pos-yellow";
+    return "pos-red";
+  };
 
   return (
     <div className="app-root">
@@ -82,9 +87,11 @@ function App() {
         <section className="server-list" role="list">
           {isLoading ? (
             // show 3 skeleton cards while first load
-            [1, 2, 3].map((n) => (
-              <div key={`skeleton-${n}`} className="server-card skeleton" />
-            ))
+            new Array(3)
+              .fill(null)
+              .map((_, i) => (
+                <div key={`skeleton-${i}`} className="server-card skeleton" />
+              ))
           ) : entries.length === 0 ? (
             <div className="empty">ไม่พบเซิร์ฟเวอร์ในไทย</div>
           ) : (
@@ -93,9 +100,10 @@ function App() {
               const upId = id.toUpperCase();
               const tier = upId.includes("ULT")
                 ? "Ultimate"
-                : upId.includes("PREF") || upId.includes("PERF")
+                : upId.includes("PERF")
                 ? "Performance"
                 : "Lite";
+
               return (
                 <div
                   key={id}
@@ -107,7 +115,14 @@ function App() {
                   <div className="server-id">{id}</div>
                   <div className="server-tier">แผน: {tier}</div>
                   <div className="server-pos">
-                    ลำดับคิว: {entry.QueuePosition}
+                    ลำดับคิว:{" "}
+                    <span
+                      className={`pos-badge ${getPosClass(
+                        entry.QueuePosition
+                      )}`}
+                    >
+                      {entry.QueuePosition}
+                    </span>
                   </div>
                   <div className="server-updated">
                     อัปเดต:{" "}
