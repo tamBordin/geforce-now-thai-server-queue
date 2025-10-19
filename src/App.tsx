@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import "./App.css";
 import logo from "./assets/title-logo.avif";
 
@@ -13,6 +13,8 @@ export type QueueResponse = Record<string, QueueEntry>;
 function App() {
   const [thaiServers, setThaiServers] = useState<QueueResponse>({});
   const [error, setError] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const firstLoadRef = useRef(true);
 
   async function fetchThaiServersInner() {
     const res = await fetch("https://api.printedwaste.com/gfn/queue/cors/");
@@ -32,10 +34,15 @@ function App() {
 
     async function load() {
       try {
+        if (firstLoadRef.current) setIsLoading(true);
         const data = await fetchThaiServersInner();
         if (!mounted) return;
         setThaiServers(data);
         setError(null);
+        if (firstLoadRef.current) {
+          firstLoadRef.current = false;
+          setIsLoading(false);
+        }
       } catch (err: unknown) {
         if (!mounted) return;
         let msg = "Unknown error";
@@ -45,6 +52,10 @@ function App() {
           if (typeof e.message === "string") msg = e.message;
         }
         setError(msg);
+        if (firstLoadRef.current) {
+          firstLoadRef.current = false;
+          setIsLoading(false);
+        }
       }
     }
 
@@ -69,7 +80,12 @@ function App() {
         {error && <div className="error">เกิดข้อผิดพลาด: {error}</div>}
 
         <section className="server-list" role="list">
-          {entries.length === 0 ? (
+          {isLoading ? (
+            // show 3 skeleton cards while first load
+            [1, 2, 3].map((n) => (
+              <div key={`skeleton-${n}`} className="server-card skeleton" />
+            ))
+          ) : entries.length === 0 ? (
             <div className="empty">ไม่พบเซิร์ฟเวอร์ในไทย</div>
           ) : (
             entries.map(([id, entry]) => {
@@ -81,7 +97,13 @@ function App() {
                 ? "Performance"
                 : "Lite";
               return (
-                <div key={id} className="server-card" role="listitem">
+                <div
+                  key={id}
+                  className={`server-card ${
+                    entry.QueuePosition === 0 ? "ready" : ""
+                  }`}
+                  role="listitem"
+                >
                   <div className="server-id">{id}</div>
                   <div className="server-tier">แผน: {tier}</div>
                   <div className="server-pos">
