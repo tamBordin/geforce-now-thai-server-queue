@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import "./App.css";
 import logo from "./assets/title-logo.avif";
 
@@ -15,6 +15,7 @@ function App() {
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const firstLoadRef = useRef(true);
+  const isMountedRef = useRef(true);
 
   async function fetchThaiServersInner() {
     const res = await fetch("https://api.printedwaste.com/gfn/queue/cors/");
@@ -29,14 +30,37 @@ function App() {
     return filtered;
   }
 
+  // Fetch with retry: attempts times, delayMs between attempts
+  const fetchWithRetry = useCallback(
+    async (attempts = 3, delayMs = 5000): Promise<QueueResponse> => {
+      let lastErr: unknown = null;
+      for (let i = 0; i < attempts; i++) {
+        try {
+          const data = await fetchThaiServersInner();
+          return data;
+        } catch (e) {
+          lastErr = e;
+          // if this was the last attempt, rethrow
+          if (i === attempts - 1) break;
+          // otherwise wait delayMs before next try
+          await new Promise((resolve) => setTimeout(resolve, delayMs));
+          // if unmounted while waiting, stop
+          if (!isMountedRef.current) throw new Error("unmounted");
+        }
+      }
+      throw lastErr;
+    },
+    []
+  );
+
   useEffect(() => {
-    let mounted = true;
+    isMountedRef.current = true;
 
     async function load() {
       try {
         if (firstLoadRef.current) setIsLoading(true);
-        const data = await fetchThaiServersInner();
-        if (!mounted) return;
+        const data = await fetchWithRetry(3, 5000);
+        if (!isMountedRef.current) return;
         setThaiServers(data);
         setError(null);
         if (firstLoadRef.current) {
@@ -44,7 +68,7 @@ function App() {
           setIsLoading(false);
         }
       } catch (err: unknown) {
-        if (!mounted) return;
+        if (!isMountedRef.current) return;
         let msg = "Unknown error";
         if (typeof err === "string") msg = err;
         else if (err && typeof err === "object") {
@@ -62,12 +86,13 @@ function App() {
     load();
     const id = setInterval(load, 60000); // fetch every 1 minute
     return () => {
-      mounted = false;
+      isMountedRef.current = false;
       clearInterval(id);
     };
-  }, []);
+  }, [fetchWithRetry]);
 
   const entries = Object.entries(thaiServers);
+
   const getPosClass = (pos: number) => {
     if (pos === 0) return "pos-green";
     if (pos > 0 && pos <= 20) return "pos-yellow";
@@ -100,7 +125,7 @@ function App() {
               const upId = id.toUpperCase();
               const tier = upId.includes("ULT")
                 ? "Ultimate"
-                : upId.includes("PERF")
+                : upId.includes("PREF")
                 ? "Performance"
                 : "Lite";
 
@@ -112,10 +137,9 @@ function App() {
                   }`}
                   role="listitem"
                 >
-                  <div className="server-id">{id}</div>
                   <div className="server-tier">แผน: {tier}</div>
                   <div className="server-pos">
-                    ลำดับคิว:{" "}
+                    ลำดับคิว:
                     <span
                       className={`pos-badge ${getPosClass(
                         entry.QueuePosition
@@ -125,7 +149,7 @@ function App() {
                     </span>
                   </div>
                   <div className="server-updated">
-                    อัปเดต:{" "}
+                    อัปเดต:
                     {new Date(entry["Last Updated"] * 1000).toLocaleString(
                       "th-TH"
                     )}
